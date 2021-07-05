@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -15,13 +16,7 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func echo(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	defer c.Close()
+func listenMessages(c *websocket.Conn) {
 	for {
 		mt, message, err := c.ReadMessage()
 		if err != nil {
@@ -37,9 +32,23 @@ func echo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func connection(w http.ResponseWriter, r *http.Request) {
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Print("upgrade:", err)
+		return
+	}
+	defer c.Close()
+	log.Println(fmt.Sprintf("%s has connected.", c.RemoteAddr()))
+	// listenMessages(c)
+}
+
 func main() {
 	flag.Parse()
 	log.SetFlags(0)
-	http.HandleFunc("/echo", echo)
+
+	http.HandleFunc("/connection", connection)
+
+	log.Println(fmt.Sprintf("Starting server on %s", *addr))
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
