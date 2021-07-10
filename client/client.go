@@ -26,7 +26,7 @@ func (c *Client) ListenMessages() {
 			log.Println("read:", err)
 			break
 		}
-		log.Printf("recv: %s", message)
+		log.Printf("%s sent: %s", c.Address, message)
 		err = c.conn.WriteMessage(mt, message)
 		if err != nil {
 			log.Println("write:", err)
