@@ -7,40 +7,20 @@ import (
 	"net/http"
 
 	"github.com/celtics-auto/ebiten-server/client"
-	"github.com/gorilla/websocket"
+	"github.com/celtics-auto/ebiten-server/server"
 )
 
-var addr = flag.String("addr", "localhost:8080", "http service address")
-var clients = client.NewMap()
-
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
-
-func connection(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	_, alreadyConn := clients.FindClient(conn.RemoteAddr())
-	if alreadyConn {
-		log.Println(fmt.Sprintf("Address %s already connected", conn.RemoteAddr()))
-		return
-	}
-	cli := client.New(conn)
-	defer clients.Disconnect(cli.Address)
-
-	log.Println(fmt.Sprintf("%s has connected.", cli.Address))
-	cli.ListenMessages()
-}
+var addr = flag.String("addr", ":8080", "http service address")
 
 func main() {
 	flag.Parse()
 	log.SetFlags(0)
 
-	http.HandleFunc("/connection", connection)
+	clients := client.NewMap()
+	srv := server.New(clients)
+	go srv.SendMessages()
+
+	http.HandleFunc("/connection", srv.ConnectClient)
 
 	log.Println(fmt.Sprintf("Starting server on %s", *addr))
 	log.Fatal(http.ListenAndServe(*addr, nil))

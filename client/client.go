@@ -1,7 +1,6 @@
 package client
 
 import (
-	"log"
 	"net"
 
 	"github.com/gorilla/websocket"
@@ -9,28 +8,12 @@ import (
 
 type Client struct {
 	Address net.Addr
-	conn    *websocket.Conn
+	Conn    *websocket.Conn
 }
 
 func New(conn *websocket.Conn) *Client {
 	return &Client{
 		Address: conn.RemoteAddr(),
-		conn:    conn,
-	}
-}
-
-func (c *Client) ListenMessages() {
-	for {
-		mt, message, err := c.conn.ReadMessage()
-		if err != nil {
-			log.Println("read:", err)
-			break
-		}
-		log.Printf("%s sent: %s", c.Address, message)
-		err = c.conn.WriteMessage(mt, message)
-		if err != nil {
-			log.Println("write:", err)
-			break
-		}
+		Conn:    conn,
 	}
 }
