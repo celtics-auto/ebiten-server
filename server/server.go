@@ -10,8 +10,14 @@ import (
 )
 
 type Message struct {
-	mType int
-	data  []byte
+	mType   int
+	data    []byte
+	address string
+}
+
+type MessageJson struct {
+	Address string `json:"address"`
+	Message []byte `json:"message"`
 }
 
 type Server struct {
@@ -49,8 +55,9 @@ func (s *Server) ListenMessages(c *client.Client) {
 		log.Printf("%s sent: %s", c.Address, message)
 
 		msg := Message{
-			mType: mt,
-			data:  message,
+			mType:   mt,
+			data:    message,
+			address: c.Address.String(),
 		}
 		s.msgChan <- msg
 	}
@@ -59,12 +66,15 @@ func (s *Server) ListenMessages(c *client.Client) {
 func (s *Server) SendMessages() {
 	for {
 		msg := <-s.msgChan
-
 		for _, c := range s.clients {
-			fmt.Println(msg.data)
-			if err := c.Conn.WriteMessage(msg.mType, msg.data); err != nil {
+			log.Printf("sending message to %s", c.Address.String())
+			msgJson := MessageJson{
+				Address: msg.address,
+				Message: msg.data,
+			}
+			if err := c.Conn.WriteJSON(msgJson); err != nil {
 				log.Println("write:", err)
-				break
+				continue
 			}
 		}
 	}
