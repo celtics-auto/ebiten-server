@@ -9,6 +9,17 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type vector struct {
+	X int `json:"x"`
+	Y int `json:"y"`
+}
+
+type player struct {
+	Position vector `json:"position"`
+	Width    int    `json:"width"`
+	Height   int    `json:"height"`
+}
+
 type Message struct {
 	mType   int
 	data    []byte
@@ -42,7 +53,8 @@ func (s *Server) ConnectClient(w http.ResponseWriter, r *http.Request) {
 	defer s.clients.Disconnect(client.Address)
 
 	log.Println(fmt.Sprintf("%s has connected.", client.Address))
-	s.ListenMessages(client)
+	go s.ListenMessages(client)
+	go s.ListenToPlayerUpdates(client)
 }
 
 func (s *Server) ListenMessages(c *client.Client) {
@@ -60,6 +72,20 @@ func (s *Server) ListenMessages(c *client.Client) {
 			address: c.Address.String(),
 		}
 		s.msgChan <- msg
+	}
+}
+
+func (s *Server) ListenToPlayerUpdates(c *client.Client) {
+	for {
+		p := &player{}
+		err := c.Conn.ReadJSON(p)
+		if err != nil {
+			log.Println("read:", err)
+			break
+		}
+		log.Printf("%s new position: %d-%d", c.Address, p.Position.X, p.Position.Y)
+
+		// TODO: send new position to other clients through a channel
 	}
 }
 
