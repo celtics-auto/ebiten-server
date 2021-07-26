@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/celtics-auto/ebiten-server/client"
+	"github.com/celtics-auto/ebiten-server/config"
 	"github.com/gorilla/websocket"
 )
 
@@ -35,6 +36,7 @@ type Server struct {
 	clients  client.ClientsMap
 	upgrader websocket.Upgrader
 	msgChan  chan Message
+	cfg      *config.Server
 }
 
 func (s *Server) ConnectClient(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +108,7 @@ func (s *Server) SendMessages() {
 	}
 }
 
-func New(clients client.ClientsMap) *Server {
+func New(clients client.ClientsMap, cfg *config.Server) *Server {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -117,5 +119,6 @@ func New(clients client.ClientsMap) *Server {
 		clients,
 		upgrader,
 		msgChan,
+		cfg,
 	}
 }
