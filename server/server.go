@@ -9,32 +9,16 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type vector struct {
-	X int `json:"x"`
-	Y int `json:"y"`
-}
-
-type player struct {
-	Position vector `json:"position"`
-	Width    int    `json:"width"`
-	Height   int    `json:"height"`
-}
-
-type Message struct {
-	mType   int
-	data    []byte
-	address string
-}
-
 type MessageJson struct {
 	Address string `json:"address"`
 	Message []byte `json:"message"`
 }
 
+// TODO: break server logic into separate files e.g.: chat messages, player position update, update clients
 type Server struct {
-	clients  client.ClientsMap
-	upgrader websocket.Upgrader
-	msgChan  chan Message
+	clients   client.ClientsMap
+	upgrader  websocket.Upgrader
+	broadcast chan client.UpdateJson
 }
 
 func (s *Server) ConnectClient(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +27,8 @@ func (s *Server) ConnectClient(w http.ResponseWriter, r *http.Request) {
 		log.Print("upgrade:", err)
 		return
 	}
+	defer conn.Close()
+
 	_, alreadyConn := s.clients.FindClient(conn.RemoteAddr())
 	if alreadyConn {
 		log.Println(fmt.Sprintf("Address %s already connected", conn.RemoteAddr()))
@@ -53,53 +39,19 @@ func (s *Server) ConnectClient(w http.ResponseWriter, r *http.Request) {
 	defer s.clients.Disconnect(client.Address)
 
 	log.Println(fmt.Sprintf("%s has connected.", client.Address))
-	go s.ListenMessages(client)
-	go s.ListenToPlayerUpdates(client)
-}
-
-func (s *Server) ListenMessages(c *client.Client) {
-	for {
-		mt, message, err := c.Conn.ReadMessage()
-		if err != nil {
-			log.Println("read:", err)
-			break
-		}
-		log.Printf("%s sent: %s", c.Address, message)
-
-		msg := Message{
-			mType:   mt,
-			data:    message,
-			address: c.Address.String(),
-		}
-		s.msgChan <- msg
-	}
-}
-
-func (s *Server) ListenToPlayerUpdates(c *client.Client) {
-	for {
-		p := &player{}
-		err := c.Conn.ReadJSON(p)
-		if err != nil {
-			log.Println("read:", err)
-			break
-		}
-		log.Printf("%s new position: %d-%d", c.Address, p.Position.X, p.Position.Y)
-
-		// TODO: send new position to other clients through a channel
-	}
+	client.Update(s.broadcast)
 }
 
 func (s *Server) SendMessages() {
 	for {
-		msg := <-s.msgChan
+		msg := <-s.broadcast
 		for _, c := range s.clients {
-			log.Printf("sending message to %s", c.Address.String())
-			msgJson := MessageJson{
-				Address: msg.address,
-				Message: msg.data,
-			}
-			if err := c.Conn.WriteJSON(msgJson); err != nil {
-				log.Println("write:", err)
+			if err := c.Conn.WriteJSON(msg); err != nil {
+				if !websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					log.Println("failed to write update json:", err)
+					c.Conn.Close()
+					s.clients.Disconnect(c.Address)
+				}
 				continue
 			}
 		}
@@ -111,11 +63,11 @@ func New(clients client.ClientsMap) *Server {
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
-	msgChan := make(chan Message)
+	broadcast := make(chan client.UpdateJson)
 
 	return &Server{
 		clients,
 		upgrader,
-		msgChan,
+		broadcast,
 	}
 }

@@ -21,7 +21,6 @@ func (cm ClientsMap) Add(c *Client) {
 }
 
 func (cm ClientsMap) Disconnect(addr net.Addr) {
-	cm[addr].Conn.Close()
 	delete(cm, addr)
 }
 

@@ -10,7 +10,7 @@ import (
 	"github.com/celtics-auto/ebiten-server/server"
 )
 
-var addr = flag.String("addr", ":8080", "http service address")
+var addr = flag.String("addr", ":3000", "http service address")
 
 func main() {
 	flag.Parse()
@@ -25,3 +25,5 @@ func main() {
 	log.Println(fmt.Sprintf("Starting server on %s", *addr))
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
+
+// client needs to know how to update every other player on screen
