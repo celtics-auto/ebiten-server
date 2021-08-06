@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/celtics-auto/ebiten-server/client"
 	"github.com/celtics-auto/ebiten-server/server"
 )
 
@@ -16,14 +15,13 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 
-	clients := client.NewMap()
-	srv := server.New(clients)
-	go srv.SendMessages()
+	srv := server.NewServer()
+	go srv.Run()
 
-	http.HandleFunc("/connection", srv.ConnectClient)
+	http.HandleFunc("/connection", func(w http.ResponseWriter, r *http.Request) {
+		server.UpgradeConn(w, r, srv)
+	})
 
 	log.Println(fmt.Sprintf("Starting server on %s", *addr))
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
-
-// client needs to know how to update every other player on screen

@@ -1,45 +1,17 @@
 package server
 
 import (
-	"fmt"
 	"log"
-	"net/http"
 
 	"github.com/celtics-auto/ebiten-server/client"
 	"github.com/gorilla/websocket"
 )
 
-type MessageJson struct {
-	Address string `json:"address"`
-	Message []byte `json:"message"`
-}
-
-// TODO: break server logic into separate files e.g.: chat messages, player position update, update clients
 type Server struct {
-	clients   client.ClientsMap
-	upgrader  websocket.Upgrader
-	broadcast chan client.UpdateJson
-}
-
-func (s *Server) ConnectClient(w http.ResponseWriter, r *http.Request) {
-	conn, err := s.upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	defer conn.Close()
-
-	_, alreadyConn := s.clients.FindClient(conn.RemoteAddr())
-	if alreadyConn {
-		log.Println(fmt.Sprintf("Address %s already connected", conn.RemoteAddr()))
-		return
-	}
-	client := s.clients.CreateClient(conn)
-	s.clients.Add(client)
-	defer s.clients.Disconnect(client.Address)
-
-	log.Println(fmt.Sprintf("%s has connected.", client.Address))
-	client.Update(s.broadcast)
+	clients    map[*client.Client]bool
+	register   chan *Client
+	unregister chan *Client
+	broadcast  chan *UpdateJson
 }
 
 func (s *Server) SendMessages() {
@@ -58,16 +30,41 @@ func (s *Server) SendMessages() {
 	}
 }
 
-func New(clients client.ClientsMap) *Server {
-	upgrader := websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
+/*
+	O método Run vai ficar observando os 3 channels do server
+*/
+func (s *Server) Run() {
+	for {
+		select {
+		case client := <-s.register:
+			s.clients[client] = true
+		case client := <-s.unregister:
+			if _, ok := s.clients[client]; ok {
+				delete(s.clients, client)
+				close(client.send)
+			}
+		case message := <-s.broadcast:
+			for client := range s.clients {
+				select {
+				case client.send <- message:
+				default:
+					close(client.send)
+					delete(s.clients, client)
+				}
+			}
+		}
 	}
+}
+
+/*
+	TODO:
+	Instanciar channels que faltam
+	Remover o metodo SendMessages
+*/
+func NewServer() *Server {
 	broadcast := make(chan client.UpdateJson)
 
 	return &Server{
-		clients,
-		upgrader,
 		broadcast,
 	}
 }
