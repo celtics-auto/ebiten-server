@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/celtics-auto/ebiten-server/client"
+	"github.com/celtics-auto/ebiten-server/config"
 	"github.com/celtics-auto/ebiten-server/server"
 )
 
@@ -15,7 +17,9 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 
-	srv := server.NewServer()
+	cfg, _ := config.New()
+	clients := client.NewMap()
+	srv := server.New(clients, &cfg.Server)
 	go srv.Run()
 
 	http.HandleFunc("/connection", func(w http.ResponseWriter, r *http.Request) {

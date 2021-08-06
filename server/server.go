@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/celtics-auto/ebiten-server/client"
+	"github.com/celtics-auto/ebiten-server/config"
 	"github.com/gorilla/websocket"
 )
 
@@ -12,6 +13,7 @@ type Server struct {
 	register   chan *Client
 	unregister chan *Client
 	broadcast  chan *UpdateJson
+	cfg        *config.Server
 }
 
 func (s *Server) SendMessages() {
@@ -61,10 +63,12 @@ func (s *Server) Run() {
 	Instanciar channels que faltam
 	Remover o metodo SendMessages
 */
-func NewServer() *Server {
+func New(clients client.ClientsMap, cfg *config.Server) *Server {
 	broadcast := make(chan client.UpdateJson)
 
 	return &Server{
 		broadcast,
+		clients,
+		cfg,
 	}
 }
