@@ -1,35 +1,15 @@
 package server
 
 import (
-	"log"
-
-	"github.com/celtics-auto/ebiten-server/client"
 	"github.com/celtics-auto/ebiten-server/config"
-	"github.com/gorilla/websocket"
 )
 
 type Server struct {
-	clients    map[*client.Client]bool
+	broadcast  chan *UpdateJson
 	register   chan *Client
 	unregister chan *Client
-	broadcast  chan *UpdateJson
+	clients    map[*Client]bool
 	cfg        *config.Server
-}
-
-func (s *Server) SendMessages() {
-	for {
-		msg := <-s.broadcast
-		for _, c := range s.clients {
-			if err := c.Conn.WriteJSON(msg); err != nil {
-				if !websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					log.Println("failed to write update json:", err)
-					c.Conn.Close()
-					s.clients.Disconnect(c.Address)
-				}
-				continue
-			}
-		}
-	}
 }
 
 /*
@@ -58,16 +38,16 @@ func (s *Server) Run() {
 	}
 }
 
-/*
-	TODO:
-	Instanciar channels que faltam
-	Remover o metodo SendMessages
-*/
-func New(clients client.ClientsMap, cfg *config.Server) *Server {
-	broadcast := make(chan client.UpdateJson)
+func New(cfg *config.Server) *Server {
+	broadcast := make(chan *UpdateJson)
+	register := make(chan *Client)
+	unregister := make(chan *Client)
+	clients := make(map[*Client]bool)
 
 	return &Server{
 		broadcast,
+		register,
+		unregister,
 		clients,
 		cfg,
 	}
