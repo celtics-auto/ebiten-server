@@ -14,6 +14,7 @@ type Server struct {
 	Port string `mapstructure:"server_port"`
 }
 
+// FIXME: .env not working
 func New() (*Config, error) {
 	viper.SetDefault("SERVER_PORT", "3030")
 
