@@ -19,7 +19,6 @@ func (c *Client) WritePump() {
 				return
 			}
 
-			log.Println("sending message")
 			if err := c.Conn.WriteJSON(message); err != nil {
 				if !websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					log.Println("failed to write update json:", err)

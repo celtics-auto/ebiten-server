@@ -20,7 +20,6 @@ func (c *Client) ReadPump() {
 			// }
 			break
 		}
-		log.Println(string(uJson.Message.Text))
 		c.server.broadcast <- uJson
 	}
 }
