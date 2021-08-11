@@ -7,7 +7,7 @@ import (
 )
 
 type Config struct {
-	Server Server `mapstructure:", squash"`
+	Server Server `mapstructure:",squash"`
 }
 
 type Server struct {
@@ -16,7 +16,7 @@ type Server struct {
 
 // FIXME: .env not working
 func New() (*Config, error) {
-	viper.SetDefault("SERVER_PORT", "3030")
+	viper.SetDefault("SERVER_PORT", "3000")
 
 	viper.SetConfigType("env")
 	viper.SetConfigFile(".env")

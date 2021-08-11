@@ -21,7 +21,7 @@ func main() {
 		server.UpgradeConn(w, r, srv)
 	})
 
-	host := fmt.Sprintf("%s%s", ":", "3000")
+	host := fmt.Sprintf("%s%s", ":", cfg.Server.Port)
 	log.Println(fmt.Sprintf("Starting server on %s", host))
 	log.Fatal(http.ListenAndServe(host, nil))
 }
