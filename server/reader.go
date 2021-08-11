@@ -1,7 +1,7 @@
 package server
 
 import (
-	"log"
+	"go.uber.org/zap"
 )
 
 func (c *Client) ReadPump() {
@@ -14,7 +14,7 @@ func (c *Client) ReadPump() {
 		uJson := &UpdateJson{}
 		err := c.Conn.ReadJSON(uJson)
 		if err != nil {
-			log.Printf("failed to read update json: %v", err)
+			zap.S().Errorf("failed to read update json: %s", err.Error())
 			// if !websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 			// 	log.Printf("failed to read update json: %v", err)
 			// }

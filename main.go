@@ -6,10 +6,17 @@ import (
 	"net/http"
 
 	"github.com/celtics-auto/ebiten-server/config"
+	"github.com/celtics-auto/ebiten-server/logger"
 	"github.com/celtics-auto/ebiten-server/server"
+	"go.uber.org/zap"
 )
 
 func main() {
+	logErr := logger.Init()
+	if logErr != nil {
+		log.Fatalf("failed to initialize logger: %s", logErr.Error())
+	}
+
 	cfg, err := config.New()
 	if err != nil {
 		log.Fatalf("config error: %s", err.Error())
@@ -22,6 +29,6 @@ func main() {
 	})
 
 	host := fmt.Sprintf("%s%s", ":", cfg.Server.Port)
-	log.Println(fmt.Sprintf("Starting server on %s", host))
+	zap.S().Infof("Starting server on %s", host)
 	log.Fatal(http.ListenAndServe(host, nil))
 }

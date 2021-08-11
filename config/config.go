@@ -1,9 +1,8 @@
 package config
 
 import (
-	"log"
-
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 type Config struct {
@@ -23,7 +22,7 @@ func New() (*Config, error) {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		log.Println("config: .env file not found")
+		zap.L().Error("config: .env file not found")
 	}
 
 	cfg := &Config{}

@@ -1,9 +1,8 @@
 package server
 
 import (
-	"log"
-
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
 
 func (c *Client) WritePump() {
@@ -21,7 +20,7 @@ func (c *Client) WritePump() {
 
 			if err := c.Conn.WriteJSON(message); err != nil {
 				if !websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-					log.Println("failed to write update json:", err)
+					zap.S().Errorf("failed to write update json: %s", err.Error())
 
 					c.server.unregister <- c
 				}

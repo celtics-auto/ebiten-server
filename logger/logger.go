@@ -21,6 +21,7 @@ func createLogDirectory(currentPath string) error {
 	return nil
 }
 
+// TODO: customize filename
 func getLogWritter(currentPath string) (zapcore.WriteSyncer, error) {
 	file, err := os.OpenFile(currentPath+"/logs/filename.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
@@ -32,6 +33,7 @@ func getLogWritter(currentPath string) (zapcore.WriteSyncer, error) {
 
 func getEncoder() zapcore.Encoder {
 	encoderConfig := zap.NewProductionEncoderConfig()
+	// TODO: format time
 	// encoderConfig.EncodeTime = zapcore.TimeEncoder(func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 	// 	enc.AppendString(t.UTC().Format(""))
 	// })
@@ -49,6 +51,7 @@ func Init() error {
 		return err
 	}
 
+	// TODO: add option to log to stdout via config
 	writerSync, wErr := getLogWritter(currentPath)
 	if wErr != nil {
 		return wErr
