@@ -1,124 +1,54 @@
 package server
 
 import (
-	"fmt"
-	"log"
-	"net/http"
-
-	"github.com/celtics-auto/ebiten-server/client"
 	"github.com/celtics-auto/ebiten-server/config"
-	"github.com/gorilla/websocket"
 )
 
-type vector struct {
-	X int `json:"x"`
-	Y int `json:"y"`
-}
-
-type player struct {
-	Position vector `json:"position"`
-	Width    int    `json:"width"`
-	Height   int    `json:"height"`
-}
-
-type Message struct {
-	mType   int
-	data    []byte
-	address string
-}
-
-type MessageJson struct {
-	Address string `json:"address"`
-	Message []byte `json:"message"`
-}
-
 type Server struct {
-	clients  client.ClientsMap
-	upgrader websocket.Upgrader
-	msgChan  chan Message
-	cfg      *config.Server
+	broadcast  chan *UpdateJson
+	register   chan *Client
+	unregister chan *Client
+	clients    map[*Client]bool
+	cfg        *config.Server
 }
 
-func (s *Server) ConnectClient(w http.ResponseWriter, r *http.Request) {
-	conn, err := s.upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	_, alreadyConn := s.clients.FindClient(conn.RemoteAddr())
-	if alreadyConn {
-		log.Println(fmt.Sprintf("Address %s already connected", conn.RemoteAddr()))
-		return
-	}
-	client := s.clients.CreateClient(conn)
-	s.clients.Add(client)
-	defer s.clients.Disconnect(client.Address)
-
-	log.Println(fmt.Sprintf("%s has connected.", client.Address))
-	go s.ListenMessages(client)
-	go s.ListenToPlayerUpdates(client)
-}
-
-func (s *Server) ListenMessages(c *client.Client) {
+/*
+	O método Run vai ficar observando os 3 channels do server
+*/
+func (s *Server) Run() {
 	for {
-		mt, message, err := c.Conn.ReadMessage()
-		if err != nil {
-			log.Println("read:", err)
-			break
-		}
-		log.Printf("%s sent: %s", c.Address, message)
-
-		msg := Message{
-			mType:   mt,
-			data:    message,
-			address: c.Address.String(),
-		}
-		s.msgChan <- msg
-	}
-}
-
-func (s *Server) ListenToPlayerUpdates(c *client.Client) {
-	for {
-		p := &player{}
-		err := c.Conn.ReadJSON(p)
-		if err != nil {
-			log.Println("read:", err)
-			break
-		}
-		log.Printf("%s new position: %d-%d", c.Address, p.Position.X, p.Position.Y)
-
-		// TODO: send new position to other clients through a channel
-	}
-}
-
-func (s *Server) SendMessages() {
-	for {
-		msg := <-s.msgChan
-		for _, c := range s.clients {
-			log.Printf("sending message to %s", c.Address.String())
-			msgJson := MessageJson{
-				Address: msg.address,
-				Message: msg.data,
+		select {
+		case client := <-s.register:
+			s.clients[client] = true
+		case client := <-s.unregister:
+			if _, ok := s.clients[client]; ok {
+				delete(s.clients, client)
+				close(client.send)
 			}
-			if err := c.Conn.WriteJSON(msgJson); err != nil {
-				log.Println("write:", err)
-				continue
+		case message := <-s.broadcast:
+			for client := range s.clients {
+				select {
+				case client.send <- message:
+				default:
+					close(client.send)
+					delete(s.clients, client)
+				}
 			}
 		}
 	}
 }
 
-func New(clients client.ClientsMap, cfg *config.Server) *Server {
-	upgrader := websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-	msgChan := make(chan Message)
+func New(cfg *config.Server) *Server {
+	broadcast := make(chan *UpdateJson)
+	register := make(chan *Client)
+	unregister := make(chan *Client)
+	clients := make(map[*Client]bool)
 
 	return &Server{
+		broadcast,
+		register,
+		unregister,
 		clients,
-		upgrader,
-		msgChan,
 		cfg,
 	}
 }
