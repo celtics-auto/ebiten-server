@@ -1,1 +1,0 @@
-1.628648419627658e+09	[34mINFO[0m	ebiten-server/main.go:32	Starting server on :3000
