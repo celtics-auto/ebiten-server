@@ -3,9 +3,15 @@ package logger
 import (
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/celtics-auto/ebiten-server/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+)
+
+const (
+	DEVELOPMENT_STRING = "development"
 )
 
 /*
@@ -22,7 +28,7 @@ func createLogDirectory(currentPath string) error {
 }
 
 // TODO: customize filename
-func getLogWritter(currentPath string) (zapcore.WriteSyncer, error) {
+func getFileWritter(currentPath string) (zapcore.WriteSyncer, error) {
 	file, err := os.OpenFile(currentPath+"/logs/filename.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
 	if err != nil {
@@ -31,34 +37,64 @@ func getLogWritter(currentPath string) (zapcore.WriteSyncer, error) {
 	return zapcore.AddSync(file), nil
 }
 
+func getWriters(cfg *config.Logger) (zapcore.WriteSyncer, error) {
+	writersArray := []zapcore.WriteSyncer{}
+
+	if cfg.File {
+		currentPath, err := os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+
+		if err := createLogDirectory(currentPath); err != nil {
+			return nil, err
+		}
+
+		fileSyncer, wErr := getFileWritter(currentPath)
+		if wErr != nil {
+			return nil, wErr
+		}
+
+		writersArray = append(writersArray, fileSyncer)
+	}
+
+	if cfg.Stdout {
+		writersArray = append(writersArray, zapcore.AddSync(os.Stdout))
+	}
+
+	allWriters := zap.CombineWriteSyncers(writersArray...)
+
+	return allWriters, nil
+}
+
 func getEncoder() zapcore.Encoder {
 	encoderConfig := zap.NewProductionEncoderConfig()
-	// TODO: format time
-	// encoderConfig.EncodeTime = zapcore.TimeEncoder(func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-	// 	enc.AppendString(t.UTC().Format(""))
-	// })
+
+	encoderConfig.EncodeTime = zapcore.TimeEncoder(func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+		enc.AppendString(t.UTC().Format("02-01-2006 15:04:05"))
+	})
+
 	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	return zapcore.NewConsoleEncoder(encoderConfig)
 }
 
-func Init() error {
-	currentPath, err := os.Getwd()
+func getLogLevel(env string) zapcore.Level {
+	if env == DEVELOPMENT_STRING {
+		return zapcore.DebugLevel
+	}
+
+	return zapcore.WarnLevel
+}
+
+func Init(cfg *config.Logger, env string) error {
+	allWriters, err := getWriters(cfg)
 	if err != nil {
 		return err
 	}
 
-	if err := createLogDirectory(currentPath); err != nil {
-		return err
-	}
-
-	// TODO: add option to log to stdout via config
-	writerSync, wErr := getLogWritter(currentPath)
-	if wErr != nil {
-		return wErr
-	}
-
+	logLevel := getLogLevel(env)
 	encoder := getEncoder()
-	core := zapcore.NewCore(encoder, writerSync, zapcore.DebugLevel)
+	core := zapcore.NewCore(encoder, allWriters, logLevel)
 	logg := zap.New(core, zap.AddCaller())
 
 	zap.ReplaceGlobals(logg)

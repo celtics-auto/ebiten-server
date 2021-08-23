@@ -12,15 +12,16 @@ import (
 )
 
 func main() {
-	logErr := logger.Init()
-	if logErr != nil {
-		log.Fatalf("failed to initialize logger: %s", logErr.Error())
-	}
-
 	cfg, err := config.New()
 	if err != nil {
 		log.Fatalf("config error: %s", err.Error())
 	}
+
+	lErr := logger.Init(&cfg.Logger, cfg.AppEnv)
+	if lErr != nil {
+		log.Fatalf("failed to initialize logger: %s", lErr.Error())
+	}
+
 	srv := server.New(&cfg.Server)
 	go srv.Run()
 

@@ -6,16 +6,25 @@ import (
 )
 
 type Config struct {
+	AppEnv string `mapstructure:"app_env"`
 	Server Server `mapstructure:",squash"`
+	Logger Logger `mapstructure:",squash"`
 }
 
 type Server struct {
 	Port string `mapstructure:"server_port"`
 }
 
-// FIXME: .env not working
+type Logger struct {
+	Stdout bool `mapstructure:"logger_stdout"`
+	File   bool `mapstructure:"logger_file"`
+}
+
 func New() (*Config, error) {
+	viper.SetDefault("APP_ENV", "production")
 	viper.SetDefault("SERVER_PORT", "3000")
+	viper.SetDefault("LOGGER_STDOUT", true)
+	viper.SetDefault("LOGGER_FILE", false)
 
 	viper.SetConfigType("env")
 	viper.SetConfigFile(".env")
