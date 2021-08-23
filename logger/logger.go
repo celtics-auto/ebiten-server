@@ -27,9 +27,9 @@ func createLogDirectory(currentPath string) error {
 	return nil
 }
 
-// TODO: customize filename
+// TODO: create new files in runtime to separate logs by day
 func getFileWritter(currentPath string) (zapcore.WriteSyncer, error) {
-	file, err := os.OpenFile(currentPath+"/logs/filename.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(currentPath+"/logs/celtic_log.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
 	if err != nil {
 		return nil, err
