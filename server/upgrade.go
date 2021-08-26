@@ -1,10 +1,10 @@
 package server
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
 
 var upgrader = websocket.Upgrader{
@@ -18,11 +18,11 @@ var upgrader = websocket.Upgrader{
 func UpgradeConn(w http.ResponseWriter, r *http.Request, s *Server) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Print("upgrade:", err)
+		zap.S().Errorf("upgrade connection error: %s", err.Error())
 		return
 	}
 
-	log.Printf("%s connected", conn.RemoteAddr())
+	zap.S().Infof("%s connected", conn.RemoteAddr())
 	client := NewClient(conn, s)
 	s.register <- client
 
