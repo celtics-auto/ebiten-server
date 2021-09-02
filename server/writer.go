@@ -1,6 +1,8 @@
 package server
 
 import (
+	"encoding/binary"
+
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
 )
@@ -18,7 +20,13 @@ func (c *Client) WritePump() {
 				return
 			}
 
-			if err := c.Conn.WriteJSON(message); err != nil {
+			posX := uint16(message.Player.Position.X)
+			posY := uint16(message.Player.Position.Y)
+			buf := make([]byte, 4)
+			binary.LittleEndian.PutUint16(buf[0:], posX)
+			binary.LittleEndian.PutUint16(buf[2:], posY)
+
+			if err := c.Conn.WriteMessage(websocket.BinaryMessage, buf); err != nil {
 				if !websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					zap.S().Errorf("failed to write update json: %s", err.Error())
 

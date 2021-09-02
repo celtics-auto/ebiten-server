@@ -11,8 +11,8 @@ type player struct {
 }
 
 type vector struct {
-	X int `json:"x"`
-	Y int `json:"y"`
+	X int16 `json:"x"`
+	Y int16 `json:"y"`
 }
 type message struct {
 	Address string `json:"address"`
