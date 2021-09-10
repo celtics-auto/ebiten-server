@@ -20,6 +20,7 @@ func (c *Client) WritePump() {
 				return
 			}
 
+			zap.S().Debugf("x: %d - y: %d", message.Player.Position.X, message.Player.Position.Y)
 			posX := uint16(message.Player.Position.X)
 			posY := uint16(message.Player.Position.Y)
 			buf := make([]byte, 4)

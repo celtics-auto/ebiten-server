@@ -5,23 +5,23 @@ import (
 )
 
 type player struct {
-	Position vector `json:"position"`
-	Width    int    `json:"width"`
-	Height   int    `json:"height"`
+	Position vector
+	Width    int
+	Height   int
 }
 
 type vector struct {
-	X int16 `json:"x"`
-	Y int16 `json:"y"`
+	X int16
+	Y int16
 }
 type message struct {
-	Address string `json:"address"`
-	Text    []byte `json:"text"`
+	Address string
+	Text    []byte
 }
 
 type UpdateJson struct {
-	Message *message `json:"message"`
-	Player  *player  `json:"player"`
+	Message *message
+	Player  *player
 }
 
 //Client precisa ter um ponteiro pro server

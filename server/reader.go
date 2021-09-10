@@ -36,7 +36,7 @@ func (c *Client) ReadPump() {
 				Position: v,
 			},
 		}
-		zap.S().Debugf("x: %d - y: %d", uJson.Player.Position.X, uJson.Player.Position.Y)
+		// zap.S().Debugf("x: %d - y: %d", uJson.Player.Position.X, uJson.Player.Position.Y)
 		c.server.broadcast <- uJson
 	}
 }
